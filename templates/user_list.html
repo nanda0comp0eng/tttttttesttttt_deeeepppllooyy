@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User List</title>
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        header {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        form {
+            margin: 20px 0;
+        }
+        input, select, button {
+            margin: 5px 0;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        a {
+            text-decoration: none;
+            color: #007BFF;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        footer {
+            background-color: #007BFF;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        
+        /* Added styles for user menu */
+        #user-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            width: 200px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #user-menu ul {
+            list-style: none;
+            margin: 0;
+            padding: 10px;
+        }
+        #user-menu li {
+            padding: 10px;
+        }
+        #user-menu a {
+            text-decoration: none;
+            color: black;
+        }
+        
+        /* Icon styles */
+        .fa-user-shield {
+            color: gold;
+            font-size: 1.2em;
+        }
+        .fa-user {
+            color: #007bff;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <script>
+        window.onload = function() {
+            {% for category, message in messages %}
+                alert("{{ message }}");
+            {% endfor %}
+        };
+    </script>
+    {% endif %}
+    {% endwith %}
+
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;">
+            <h1>Admin Dashboard</h1>
+            <div style="position: relative; display: inline-block;">
+                <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" id="user-menu-trigger">
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&size=40" alt="User Icon" style="border-radius: 50%;">
+                    <span>Welcome, {{ user.username }}</span>
+                </div>
+                <div id="user-menu">
+                    <ul>
+                        <li><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                        <li><a href="{{ url_for('user_list') }}">View Users</a></li>
+                        <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>Create New User</h2>
+        <form method="POST" action="{{ url_for('user_list') }}">
+            <input type="hidden" name="action" value="add_user">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            <label for="permission">Permission:</label>
+            <select id="permission" name="permission">
+                <option value="10">User</option>
+                <option value="50">Admin</option>
+            </select>
+            <button type="submit">Add User</button>
+        </form>
+
+        <h2>Registered Users</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Icon</th>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Permission</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>
+                        {% if user.permission == 50 %}
+                        <i class="fas fa-user-shield"></i> <!-- Admin Icon -->
+                        {% else %}
+                        <i class="fas fa-user"></i> <!-- User Icon -->
+                        {% endif %}
+                    </td>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ 'Admin' if user.permission == 50 else 'User' }}</td>
+                    <td>
+                        <form id="delete-form-{{ user.id }}" method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display: inline;">
+                            <button type="button" onclick="confirmDelete({{ user.id }})">Delete</button>
+                        </form>
+                        <button type="button" class="update-btn" onclick="openUpdateForm({{ user.id }}, '{{ user.username }}', {{ user.permission }})">Update</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Form for Updating User -->
+    <div id="updateModal" style="display:none;">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('user_list') }}">
+                <input type="hidden" name="action" value="update_user">
+                <input type="hidden" id="update_user_id" name="user_id">
+                <label for="update_username">Username:</label>
+                <input type="text" id="update_username" name="username" required>
+                <label for="update_permission">Permission:</label>
+                <select id="update_permission" name="permission">
+                    <option value="10">User</option>
+                    <option value="50">Admin</option>
+                </select>
+                <button type="submit">Update User</button>
+                <button type="button" onclick="closeUpdateForm()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Admin Dashboard. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        // Toggle user menu visibility
+        document.getElementById('user-menu-trigger').addEventListener('mouseenter', function() {
+            document.getElementById('user-menu').style.display = 'block';
+        });
+
+        document.getElementById('user-menu').addEventListener('mouseleave', function() {
+            document.getElementById('user-menu').style.display = 'none';
+        });
+
+        // Your existing scripts
+        function confirmDelete(userId) {
+            if (confirm("Are you sure you want to delete this user?")) {
+                document.getElementById(`delete-form-${userId}`).submit();
+            }
+        }
+
+        function openUpdateForm(userId, username, permission) {
+            document.getElementById("updateModal").style.display = "block";
+            document.getElementById("update_user_id").value = userId;
+            document.getElementById("update_username").value = username;
+            document.getElementById("update_permission").value = permission;
+        }
+
+        function closeUpdateForm() {
+            document.getElementById("updateModal").style.display = "none";
+        }
+    </script>
+</body>
+</html>

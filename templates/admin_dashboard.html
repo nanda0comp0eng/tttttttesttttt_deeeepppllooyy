@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        header {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        .dropdown {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        footer {
+            background-color: #007BFF;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            margin-top: 20px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <script>
+        window.onload = function() {
+            {% for category, message in messages %}
+                alert("{{ message }}");
+            {% endfor %}
+        };
+    </script>
+    {% endif %}
+    {% endwith %}
+    
+    {% block content %}{% endblock %}
+
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;">
+            <h1>Admin Dashboard</h1>
+            <div style="position: relative; display: inline-block;">
+                <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" id="user-menu-trigger">
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&size=40" alt="User Icon" style="border-radius: 50%;">
+                    <span>Welcome, {{ user.username }}</span>
+                </div>
+                <div id="user-menu" style="display: none; position: absolute; right: 0; background: white; border: 1px solid #ccc; border-radius: 8px; width: 200px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                    <ul style="list-style: none; margin: 0; padding: 10px;">
+                        <li style="padding: 10px;"><a href="{{ url_for('admin_dashboard') }}" style="text-decoration: none; color: black;">Dashboard</a></li>
+                        <li style="padding: 10px;"><a href="{{ url_for('user_list') }}" style="text-decoration: none; color: black;">View Users</a></li>
+                        <li style="padding: 10px;"><a href="{{ url_for('logout') }}" style="text-decoration: none; color: black;">Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>Manage Products</h2>
+        <form method="post" action="{{ url_for('admin_dashboard') }}" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="add_product">
+            
+            <label for="product_name">Product Name:</label>
+            <input type="text" id="product_name" name="product_name" required><br>
+    
+            <label for="product_price">Product Price (Rp):</label>
+            <input type="text" id="product_price" name="product_price" required oninput="formatCurrency(this)"><br>
+    
+            <label for="product_description">Product Description:</label>
+            <textarea id="product_description" name="product_description" class="form-control" required></textarea><br>
+    
+            <label for="product_image">Product Image:</label>
+            <input type="file" id="product_image" name="product_image" accept="image/*" required><br>
+    
+            <label for="product_category">Category:</label>
+            <select id="product_category" name="product_category" class="dropdown" required>
+                <option value="game">Game</option>
+                <option value="console">Console</option>
+                <option value="accessory">Accessory</option>
+                <option value="merchandise">Merchandise</option>
+            </select><br>
+    
+            <button type="submit">Add Product</button>
+        </form>
+
+    <h3>Delete a Product</h3>
+    <form method="post" action="{{ url_for('admin_dashboard') }}">
+        <input type="hidden" name="action" value="delete_product">
+        <label for="product_id">Select Product:</label>
+        <select id="product_id" name="product_id" class="dropdown" required>
+            {% for product in products %}
+            <option value="{{ product.id }}">{{ product.name }} - Rp{{ '{:,.2f}'.format(product.price).replace(',', '.').replace('.', ',', 1) }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Delete Product</button>
+    </form>
+
+    <h2>Add Promo</h2>
+<form method="post">
+    <input type="hidden" name="action" value="add_promo">
+    <label for="promo_name">Promo Name:</label>
+    <input type="text" name="promo_name" required>
+    
+    <label for="promo_discount">Discount (%):</label>
+    <input type="number" name="promo_discount" required>
+    
+    <label for="promo_product_id">Select Product:</label>
+    <select name="promo_product_id" required>
+        {% for product in products %}
+        <option value="{{ product.id }}">{{ product.name }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Add Promo</button>
+</form>
+
+    <h3>Delete a Promo</h3>
+    <form method="post" action="{{ url_for('admin_dashboard') }}">
+        <input type="hidden" name="action" value="delete_promo">
+        <label for="promo_id">Select Promo:</label>
+        <select id="promo_id" name="promo_id" class="dropdown" required>
+            {% for promo in promos %}
+            <option value="{{ promo.id }}">{{ promo.name }} - {{ promo.discount }}%</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Delete Promo</button>
+    </form>
+
+    <h2>Existing Promos</h2>
+<table>
+    <tr>
+        <th>Promo Name</th>
+        <th>Discount (%)</th>
+        <th>Product Name</th>
+        <th>Product Image</th>
+        <th>Action</th>
+    </tr>
+    {% for promo in promos %}
+    <tr>
+        <td>{{ promo.promo_name }}</td>
+        <td>{{ promo.discount }}</td>
+        <td>{{ promo.product_name }}</td>
+        <td>
+            {% if promo.product_image %}
+                <img src="{{ url_for('static', filename='uploads/' + promo.product_image) }}" alt="Product Image" style="width: 100px; height: auto;">
+            {% else %}
+                <p>No Image</p>
+            {% endif %}
+        </td>
+        <td>
+            <form method="post" style="display:inline;">
+                <input type="hidden" name="action" value="delete_promo">
+                <input type="hidden" name="promo_id" value="{{ promo.id }}">
+                <button type="submit">Delete</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+</div>
+
+
+
+<footer>
+    <p>&copy; 2025 Admin Dashboard. All Rights Reserved.</p>
+</footer>
+
+<script>
+    function formatCurrency(input) {
+        let value = input.value.replace(/[^0-9]/g, ''); // Hanya angka
+        if (!value) {
+            input.value = 'Rp';
+            return;
+        }
+        value = parseInt(value).toLocaleString('id-ID'); // Format angka ke format Indonesia
+        input.value = `Rp${value}`; // Tambahkan "Rp" di awal
+    }
+
+    function applyDiscount() {
+        let discount = document.getElementById('promo_discount').value;
+        if (discount > 100) {
+            alert('Diskon tidak boleh lebih dari 100%');
+            document.getElementById('promo_discount').value = 100;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const currencyInputs = document.querySelectorAll('.currency-input');
+        currencyInputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                if (!input.value.startsWith('Rp')) {
+                    input.value = 'Rp';
+                }
+            });
+            input.addEventListener('input', () => formatCurrency(input));
+        });
+    });
+</script>
+<script>
+    // Toggle user menu visibility
+    document.getElementById('user-menu-trigger').addEventListener('mouseenter', function () {
+        document.getElementById('user-menu').style.display = 'block';
+    });
+
+    document.getElementById('user-menu').addEventListener('mouseleave', function () {
+        document.getElementById('user-menu').style.display = 'none';
+    });
+</script>
+
+</body>
+</html>

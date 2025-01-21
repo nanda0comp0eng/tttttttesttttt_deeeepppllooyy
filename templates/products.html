@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produk - Tokoku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .card {
+            border: none;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+        }
+    
+        .card:hover {
+            transform: translateY(-5px);
+        }
+    
+        .card-img-top {
+            height: 200px;
+            object-fit: cover;
+        }
+    
+        .filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    
+        .price-range {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+    
+        .category-filter {
+            margin-top: 15px;
+        }
+    
+        .sort-select {
+            width: auto;
+            display: inline-block;
+        }
+    
+        .page-link {
+            color: #007bff;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+        }
+    
+        .page-link:hover {
+            color: #0056b3;
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+        }
+    
+        .page-item.active .page-link {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+    
+        [data-bs-theme="dark"] {
+            background-color: #212529;
+            color: #fff;
+        }
+    
+        [data-bs-theme="dark"] .filters {
+            background-color: #343a40;
+        }
+    
+        [data-bs-theme="dark"] .card {
+            background-color: #343a40;
+            color: #fff;
+        }
+    
+        [data-bs-theme="dark"] .page-link {
+            background-color: #343a40;
+            border-color: #6c757d;
+            color: #fff;
+        }
+    
+        [data-bs-theme="dark"] .page-link:hover {
+            background-color: #6c757d;
+        }
+    
+        /* Tambahan gaya navbar dari index.html */
+        [data-bs-theme="dark"] .navbar-light {
+            background-color: #343a40 !important;
+        }
+    
+        [data-bs-theme="dark"] .navbar-light .navbar-brand,
+        [data-bs-theme="dark"] .navbar-light .nav-link {
+            color: #fff;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 2px solid #6c757d;
+            background: transparent;
+            color: #6c757d;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: #6c757d;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .theme-toggle i {
+            font-size: 1.2rem;
+        }
+    </style>    
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">Tokoku</a>
+            <div class="d-flex align-items-center">
+                <button class="theme-toggle ms-2" onclick="toggleTheme()">
+                    <i class="fas fa-sun" id="themeIcon"></i>
+                    <span class="toggle-text" id="toggleText">Mode Terang</span>
+                </button>
+                <button class="navbar-toggler ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/products">Produk</a>
+                    </li>
+                    {% if session.get('user_id') %}
+                    <!-- User is logged in -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle fa-lg"></i> {{ session.get('username') }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            {% if session.get('permission') == 50 %}
+                            <li><a class="dropdown-item" href="/admin">Dashboard Admin</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="/profile">Profil</a></li>
+                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <!-- User is not logged in -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-primary nav-link text-grey" href="/register">Daftar</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container my-4">
+        <!-- Filters -->
+        <div class="filters">
+            <form action="{{ url_for('products') }}" method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Cari Produk:</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ request.args.get('search', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="category" class="form-label">Kategori:</label>
+                    <select class="form-select" id="category" name="category">
+                        <option value="">Semua Kategori</option>
+                        <option value="game" {% if request.args.get('category') == 'game' %}selected{% endif %}>Game</option>
+                        <option value="console" {% if request.args.get('category') == 'console' %}selected{% endif %}>Console</option>
+                        <option value="accessory" {% if request.args.get('category') == 'accessory' %}selected{% endif %}>Accessory</option>
+                        <option value="merchandise" {% if request.args.get('category') == 'merchandise' %}selected{% endif %}>Merchandise</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Rentang Harga:</label>
+                    <div class="price-range">
+                        <input type="number" class="form-control" name="min_price" placeholder="Min" value="{{ request.args.get('min_price', '') }}">
+                        <span>-</span>
+                        <input type="number" class="form-control" name="max_price" placeholder="Max" value="{{ request.args.get('max_price', '') }}">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label for="sort" class="form-label">Urutkan:</label>
+                    <select class="form-select" id="sort" name="sort">
+                        <option value="newest" {% if request.args.get('sort') == 'newest' %}selected{% endif %}>Terbaru</option>
+                        <option value="price_low" {% if request.args.get('sort') == 'price_low' %}selected{% endif %}>Harga Terendah</option>
+                        <option value="price_high" {% if request.args.get('sort') == 'price_high' %}selected{% endif %}>Harga Tertinggi</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Terapkan Filter</button>
+                    <a href="{{ url_for('products') }}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="row g-4">
+            {% for product in products %}
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <img src="{{ url_for('static', filename='uploads/' + product.image) }}" class="card-img-top" alt="{{ product.name }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text">{{ product.description }}</p>
+                        <p class="card-text"><strong>Rp{{ '{:,.2f}'.format(product.price).replace(',', '.').replace('.', ',', 1) }}</strong></p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="#" class="btn btn-primary">Beli Sekarang</a>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="addToCart({{ product.id }})">
+                                <i class="fas fa-cart-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <nav aria-label="Page navigation" class="my-4">
+            <ul class="pagination justify-content-center">
+                {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('products', page=page-1, **request.args) }}">&laquo; Previous</a>
+                </li>
+                {% endif %}
+
+                {% for p in range(max(1, page-2), min(total_pages+1, page+3)) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('products', page=p, **request.args) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+
+                {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('products', page=page+1, **request.args) }}">Next &raquo;</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <p class="mb-0">&copy; 2025 Tokoku. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+            const toggleText = document.getElementById('toggleText');
+            const currentTheme = html.getAttribute('data-bs-theme');
+            
+            if (currentTheme === 'light') {
+                html.setAttribute('data-bs-theme', 'dark');
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                toggleText.textContent = 'Mode Gelap';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.setAttribute('data-bs-theme', 'light');
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                toggleText.textContent = 'Mode Terang';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const themeIcon = document.getElementById('themeIcon');
+            const toggleText = document.getElementById('toggleText');
+            
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            if (savedTheme === 'dark') {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                toggleText.textContent = 'Mode Gelap';
+            }
+        });
+
+        function addToCart(productId) {
+            // Implement cart functionality here
+            alert('Product added to cart!');
+        }
+    </script>
+</body>
+</html>

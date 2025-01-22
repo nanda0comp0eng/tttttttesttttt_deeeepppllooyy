@@ -5,29 +5,16 @@ from functools import wraps
 import hashlib
 import os
 from werkzeug.utils import secure_filename
-from PIL import Image
-from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
-load_dotenv()
 
-PROFILE_UPLOAD_FOLDER = 'static/uploads/user'
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['PROFILE_UPLOAD_FOLDER'] = PROFILE_UPLOAD_FOLDER
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-if not os.path.exists(PROFILE_UPLOAD_FOLDER):
-    os.makedirs(PROFILE_UPLOAD_FOLDER)
-
-def check_resolution(image_path, min_width, min_height):
-    with Image.open(image_path) as img:
-        width, height = img.size
-        return width >= min_width and height >= min_height
 
 db_config = {
     'host': '6-1sh.h.filess.io',
@@ -37,9 +24,6 @@ db_config = {
     'port': '3307'
 }
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 def get_db_connection():
     try:
         connection = mysql.connector.connect(**db_config)
@@ -48,6 +32,9 @@ def get_db_connection():
     except Error as e:
         print(f"Error connecting to MySQL: {e}")
         return None
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def admin_required(f):
     @wraps(f)
@@ -125,7 +112,7 @@ def products():
     sort = request.args.get('sort', 'newest')
     
     per_page = 12
-    query = 'SELECT * FROM products WHERE 1=1'
+    query = 'SELECT id, name, CAST(price AS DECIMAL(10,2)) as price, description, category, image FROM products WHERE 1=1'
     params = []
     
     if search:
@@ -238,7 +225,7 @@ def admin_dashboard():
     cursor.execute('SELECT username FROM users WHERE id = %s', (session['user_id'],))
     user = cursor.fetchone()
 
-    cursor.execute('SELECT * FROM products')
+    cursor.execute('SELECT id, name, CAST(price AS DECIMAL(10,2)) as price, description, category, image FROM products')
     products = cursor.fetchall()
 
     cursor.execute('''
@@ -394,18 +381,6 @@ def register():
             
         cursor = conn.cursor(dictionary=True)
         
-        cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
-        if cursor.fetchone():
-            conn.close()
-            flash('Username already exists!', 'error')
-            return render_template('register.html')
-        
-        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
-        if cursor.fetchone():
-            conn.close()
-            flash('Email already registered!','error')
-            return render_template('register.html')
-        
         try:
             cursor.execute('''
                 INSERT INTO users (username, email, password, permission) 
@@ -418,74 +393,13 @@ def register():
             
         except Error as e:
             conn.rollback()
-            flash('An error occurred during registration.', 'error')
-            print(f"Database error: {e}")
+            flash('Registration failed: ' + str(e), 'error')
             return render_template('register.html')
             
         finally:
             conn.close()
             
     return render_template('register.html')
-
-@app.route('/profile', methods=['GET', 'POST'])
-def profil():
-    if 'user_id' not in session:
-        flash('Please log in first.', 'error')
-        return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT username, email FROM users WHERE id = %s', (session['user_id'],))
-    user = cursor.fetchone()
-    conn.close()
-
-    if not user:
-        flash('User not found!', 'error')
-        return redirect(url_for('index'))
-
-    profile_dir = os.path.join(app.root_path, 'static/uploads/user')
-    if not os.path.exists(profile_dir):
-        os.makedirs(profile_dir)
-
-    profile_picture_path = os.path.join(profile_dir, f"{user['username']}.png")
-    default_picture_path = os.path.join(app.root_path, 'static', 'default_picture.png')
-
-    if not os.path.exists(profile_picture_path):
-        profile_picture_path = default_picture_path
-
-    if request.method == 'POST':
-        if 'profile_picture' not in request.files or request.files['profile_picture'].filename == '':
-            flash('No file uploaded.', 'error')
-            return redirect(url_for('profil'))
-
-        file = request.files['profile_picture']
-
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            temp_file_path = os.path.join(profile_dir, filename)
-            file.save(temp_file_path)
-
-            if not check_resolution(temp_file_path, 300, 300):
-                os.remove(temp_file_path)
-                flash('Image resolution must be at least 300x300 pixels!', 'error')
-                return redirect(url_for('profil'))
-
-            if os.path.exists(profile_picture_path) and profile_picture_path != default_picture_path:
-                os.remove(profile_picture_path)
-
-            new_profile_picture_path = os.path.join(profile_dir, f"{user['username']}.png")
-            os.rename(temp_file_path, new_profile_picture_path)
-            flash('Profile picture updated successfully!', 'success')
-        else:
-            flash('Invalid file type! Only PNG files are allowed.', 'error')
-
-    profile_picture_url = (
-        url_for('static', filename=f"uploads/user/{user['username']}.png")
-        if os.path.exists(os.path.join(profile_dir, f"{user['username']}.png"))
-        else url_for('static', filename='default_picture.png')
-    )
-
-    return render_template('profile.html', user=user, profile_picture=profile_picture_url)
 
 @app.route('/logout')
 def logout():

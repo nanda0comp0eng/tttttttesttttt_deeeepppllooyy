@@ -25,3 +25,4 @@ whois==1.20240129.2
 gunicorn==21.2.0
 mysql-connector-python==8.2.0
 pillow
+python-dotenv

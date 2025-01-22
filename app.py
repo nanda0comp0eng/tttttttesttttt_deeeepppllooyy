@@ -34,11 +34,11 @@ def check_resolution(image_path, min_width, min_height):
     
 # MySQL Connection Configuration
 db_config = {
-    'host': os.getenv('db_host'),
-    'user': os.getenv('username_db'),
-    'password': os.getenv('password_db'),  # Replace with your password if necessary
-    'database': os.getenv('db_name'),
-    'port': os.getenv('db_port')
+    'host': '6-1sh.h.filess.io',
+    'database': 'tokoku_digluckygo',
+    'user': 'tokoku_digluckygo',
+    'password': '5f59f8e9ac5170f2b1d9ec42397133766b7eb894',
+    'port': '3307'
 }
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -73,19 +73,16 @@ def index():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get total number of products
     cursor.execute('SELECT COUNT(*) as total FROM products')
     total_products = cursor.fetchone()['total']
     
-    # Get latest 10 products
-    cursor.execute('''
-        SELECT * FROM products 
-        ORDER BY created_at DESC 
-        LIMIT 10
-    ''')
+    cursor.execute('SELECT * FROM products ORDER BY created_at DESC LIMIT 10')
     products = cursor.fetchall()
     
-    # Get promo data
+    # Convert price to float
+    for product in products:
+        product['price'] = float(product['price'])
+    
     cursor.execute('''
         SELECT 
             promos.name AS promo_name, 
@@ -99,6 +96,7 @@ def index():
     
     conn.close()
     return render_template('index.html', products=products, total_products=total_products, promos=promos)
+
 @app.route('/products')
 def products():
     conn = get_db_connection()

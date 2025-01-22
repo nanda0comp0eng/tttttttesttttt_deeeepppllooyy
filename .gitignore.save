@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+.DS_Store
+
+# Vercel
+.vercel
+
+# Distribution
+dist/
+build/
+*.egg-info/

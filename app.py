@@ -381,18 +381,6 @@ def register():
             
         cursor = conn.cursor(dictionary=True)
         
-        cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
-        if cursor.fetchone():
-            conn.close()
-            flash('Username already exists!', 'error')
-            return render_template('register.html')
-        
-        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
-        if cursor.fetchone():
-            conn.close()
-            flash('Email already registered!', 'error')
-            return render_template('register.html')
-        
         try:
             cursor.execute('''
                 INSERT INTO users (username, email, password, permission) 
@@ -404,8 +392,8 @@ def register():
             return redirect(url_for('login'))
             
         except Error as e:
-            flash('An error occurred during registration.', 'error')
-            print(f"Database error: {e}")
+            conn.rollback()
+            flash('Registration failed: ' + str(e), 'error')
             return render_template('register.html')
             
         finally:

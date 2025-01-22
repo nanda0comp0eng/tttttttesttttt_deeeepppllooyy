@@ -30,10 +30,11 @@ def check_resolution(image_path, min_width, min_height):
         return width >= min_width and height >= min_height
 
 db_config = {
-    'host': os.getenv('db_host'),
-    'user': os.getenv('username_db'),
-    'password': os.getenv('password_db'),
-    'database': os.getenv('db_name')
+    'host': '6-1sh.h.filess.io',
+    'database': 'tokoku_digluckygo',
+    'user': 'tokoku_digluckygo',
+    'password': '5f59f8e9ac5170f2b1d9ec42397133766b7eb894',
+    'port': '3307'
 }
 
 def allowed_file(filename):

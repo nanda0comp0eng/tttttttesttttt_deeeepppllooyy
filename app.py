@@ -495,12 +495,12 @@ def order():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Ambil semua produk dari database
-    cursor.execute('SELECT * FROM products')
+    # Fetch products with price explicitly cast to float
+    cursor.execute('SELECT id, name, CAST(price AS FLOAT) as price, description, category, image FROM products')
     products = cursor.fetchall()
     conn.close()
 
-    # Inisialisasi cart jika belum ada
+    # Initialize cart if not exists
     if 'order' not in session:
         session['order'] = []
 
@@ -511,14 +511,14 @@ def order():
             product_id = request.form['product_id']
             quantity = int(request.form['quantity'])
 
-            # Ambil informasi produk dari database berdasarkan ID
+            # Get product details from database
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM products WHERE id = %s', (product_id,))
+            cursor.execute('SELECT id, name, CAST(price AS FLOAT) as price, image FROM products WHERE id = %s', (product_id,))
             product = cursor.fetchone()
             conn.close()
 
-            # Tambahkan produk ke cart
+            # Add product to cart
             if product:
                 item = {
                     'product_id': product['id'],
@@ -536,11 +536,10 @@ def order():
             flash('Item removed from cart', 'success')
 
         elif action == 'checkout':
-            # Hitung total harga
+            # Calculate total price
             total_price = sum(item['price'] * item['quantity'] for item in session['order'])
-            # Lakukan checkout dan proses pembayaran jika diperlukan (contoh hanya menampilkan total)
             flash(f'Total price: Rp {total_price}', 'success')
-            session['order'] = []  # Kosongkan cart setelah checkout
+            session['order'] = []  # Clear cart after checkout
 
     return render_template('order.html', products=products)
 

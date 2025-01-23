@@ -91,13 +91,13 @@ def index():
     ''')
     products = cursor.fetchall()
     
-    # Get promo data
+    # Get promo data with fallback for missing product images
     cursor.execute('''
         SELECT 
             promos.name AS promo_name, 
             promos.discount, 
             products.name AS product_name, 
-            products.image AS product_image
+            COALESCE(products.image, 'default_promo.png') AS product_image
         FROM promos
         LEFT JOIN products ON promos.product_id = products.id
     ''')
@@ -263,7 +263,7 @@ def admin_dashboard():
             conn.commit()
             flash('Product deleted successfully!', 'success')
 
-        elif action == 'add_promo':
+            elif action == 'add_promo':
             name = request.form['promo_name']
             discount = request.form['promo_discount']
             product_id = request.form['promo_product_id']  # Get selected product ID

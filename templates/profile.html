@@ -52,6 +52,7 @@
                     </li>
                     {% endif %}
                 </ul>
+                
             </div>
         </div>
     </nav>
@@ -99,22 +100,38 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function toggleTheme() {
+            const html = document.documentElement;
             const themeIcon = document.getElementById('themeIcon');
             const toggleText = document.getElementById('toggleText');
-            const body = document.body;
-
-            body.classList.toggle('dark-mode');
-
-            if (body.classList.contains('dark-mode')) {
+            const currentTheme = html.getAttribute('data-bs-theme');
+            
+            if (currentTheme === 'light') {
+                html.setAttribute('data-bs-theme', 'dark');
                 themeIcon.classList.remove('fa-sun');
                 themeIcon.classList.add('fa-moon');
                 toggleText.textContent = 'Mode Gelap';
+                localStorage.setItem('theme', 'dark');
             } else {
+                html.setAttribute('data-bs-theme', 'light');
                 themeIcon.classList.remove('fa-moon');
                 themeIcon.classList.add('fa-sun');
                 toggleText.textContent = 'Mode Terang';
+                localStorage.setItem('theme', 'light');
             }
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const themeIcon = document.getElementById('themeIcon');
+            const toggleText = document.getElementById('toggleText');
+            
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            if (savedTheme === 'dark') {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                toggleText.textContent = 'Mode Gelap';
+            }
+        });
     </script>
 </body>
 </html>

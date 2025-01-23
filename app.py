@@ -4,17 +4,17 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from functools import wraps
 import hashlib
 import os
-import tempfile 
-import shutil
-from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename  # Add this import
 from PIL import Image
 import time
 import urllib.parse
+from dotenv import load_dotenv
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
+app.secret_key = 'your_secret_key_here'  # Ganti dengan secret key yang aman
+# Activate Environment
+load_dotenv()
 
-os.makedirs('static/uploads', exist_ok=True)
 PROFILE_UPLOAD_FOLDER = 'static/uploads/user'
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -120,7 +120,7 @@ def products():
     per_page = 12  # Products per page
     
     # Build the base query
-    query = 'SELECT id, name, CAST(price AS FLOAT) as price, description, category, image, created_at FROM products WHERE 1=1'
+    query = 'SELECT * FROM products WHERE 1=1'
     params = []
     
     # Add search condition
@@ -280,6 +280,7 @@ def admin_dashboard():
         
     conn.close()
     return render_template('admin_dashboard.html', user=user, products=products, promos=promos)
+
 
 @app.route('/admin/users', methods=['GET', 'POST'])
 @admin_required
@@ -468,7 +469,6 @@ def order():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Fetch products with price explicitly cast to float
     cursor.execute('SELECT id, name, CAST(price AS FLOAT) as price, description, category, image FROM products')
     products = cursor.fetchall()
     conn.close()

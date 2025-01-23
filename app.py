@@ -4,37 +4,15 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from functools import wraps
 import hashlib
 import os
-from werkzeug.utils import secure_filename  # Add this import
-from PIL import Image
 import time
 import urllib.parse
-from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
+from PIL import Image
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # Ganti dengan secret key yang aman
-# Activate Environment
-load_dotenv()
+app.secret_key = 'your_secret_key_here'
 
-PROFILE_UPLOAD_FOLDER = 'static/uploads/user'
-UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['PROFILE_UPLOAD_FOLDER'] = PROFILE_UPLOAD_FOLDER
-
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-if not os.path.exists(PROFILE_UPLOAD_FOLDER):
-    os.makedirs(PROFILE_UPLOAD_FOLDER)
-
-def check_resolution(image_path, min_width, min_height):
-    """Cek resolusi gambar."""
-    with Image.open(image_path) as img:
-        width, height = img.size
-        return width >= min_width and height >= min_height
-
-    
-# MySQL Connection Configuration
+# Database Configuration
 db_config = {
     'host': '6-1sh.h.filess.io',
     'database': 'tokoku_digluckygo',
@@ -42,12 +20,30 @@ db_config = {
     'password': '5f59f8e9ac5170f2b1d9ec42397133766b7eb894',
     'port': '3307'
 }
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# File Upload Configuration
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+UPLOAD_FOLDER = 'static/uploads'
+PROFILE_UPLOAD_FOLDER = 'static/uploads/user'
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['PROFILE_UPLOAD_FOLDER'] = PROFILE_UPLOAD_FOLDER
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(PROFILE_UPLOAD_FOLDER, exist_ok=True)
 
 def get_db_connection():
     """Connect to the database and return the connection."""
     return mysql.connector.connect(**db_config)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def check_resolution(image_path, min_width, min_height):
+    """Check image resolution."""
+    with Image.open(image_path) as img:
+        width, height = img.size
+        return width >= min_width and height >= min_height
 
 def admin_required(f):
     """Decorator to restrict access to admin users only."""
@@ -63,7 +59,7 @@ def admin_required(f):
         user = cursor.fetchone()
         conn.close()
 
-        if not user or user['permission'] != 50:  # Ensure only admins (permission 50) can access
+        if not user or user['permission'] != 50:
             flash('Access Denied. Admin privileges required.', 'error')
             return redirect(url_for('login'))
             
@@ -79,11 +75,16 @@ def index():
     cursor.execute('SELECT COUNT(*) as total FROM products')
     total_products = cursor.fetchone()['total']
     
-    # Get latest 10 products
-    # Convert price to float to ensure proper formatting
+    # Get latest 10 products with price cast to float
     cursor.execute('''
         SELECT 
-            id, name, CAST(price AS FLOAT) as price, description, category, image, created_at 
+            id, 
+            name, 
+            CAST(REPLACE(REPLACE(price, 'Rp', ''), '.', '') AS FLOAT) as price, 
+            description, 
+            category, 
+            image, 
+            created_at 
         FROM products 
         ORDER BY created_at DESC 
         LIMIT 10
@@ -104,6 +105,7 @@ def index():
     
     conn.close()
     return render_template('index.html', products=products, total_products=total_products, promos=promos)
+
 @app.route('/products')
 def products():
     conn = get_db_connection()
@@ -119,7 +121,7 @@ def products():
     
     per_page = 12  # Products per page
     
-    # Ensure price is cast to float in the base query
+    # Base query with price cast to float
     query = '''
         SELECT 
             id, 
@@ -133,8 +135,6 @@ def products():
         WHERE 1=1
     '''
     params = []
-    
-    # Rest of the query remains the same...
     
     # Add search condition
     if search:
@@ -180,61 +180,19 @@ def products():
     cursor.execute(query, params)
     products = cursor.fetchall()
     
+    # Calculate page range
+    page_range_start = max(1, page - 2)
+    page_range_end = min(total_pages + 1, page + 3)
+    
     conn.close()
     
     return render_template('products.html',
                          products=products,
                          page=page,
                          total_pages=total_pages,
-                         total_products=total_products)
-    
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = hashlib.md5(request.form['password'].encode()).hexdigest()
-
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', 
-                       (username, password))
-        user = cursor.fetchone()
-        conn.close()
-
-        if user:
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['permission'] = user['permission']  # Save permission level in session
-            flash('Login berhasil!', 'success')
-            return redirect(url_for('index'))
-        else:
-            flash('Username atau password salah!', 'danger')
-
-    return render_template('login.html')
-
-
-
-@app.route('/loginadm', methods=['GET', 'POST'])
-def loginadm():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = hashlib.md5(request.form['password'].encode()).hexdigest()
-
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', 
-                       (username, password))
-        user = cursor.fetchone()
-        conn.close()
-
-        if user:
-            session['user_id'] = user['id']
-            flash('Login successful!', 'success')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Invalid username or password!', 'error')
-
-    return render_template('loginadmin.html')
+                         total_products=total_products,
+                         page_range_start=page_range_start,
+                         page_range_end=page_range_end)
 
 @app.route('/admin', methods=['GET', 'POST'])
 @admin_required
@@ -249,7 +207,16 @@ def admin_dashboard():
     cursor.execute('SELECT username FROM users WHERE id = %s', (session['user_id'],))
     user = cursor.fetchone()
 
-    cursor.execute('SELECT id, name, CAST(price AS DECIMAL(10,2)) as price, description, category, image FROM products')
+    cursor.execute('''
+        SELECT 
+            id, 
+            name, 
+            CAST(REPLACE(REPLACE(price, 'Rp', ''), '.', '') AS FLOAT) as price, 
+            description, 
+            category, 
+            image 
+        FROM products
+    ''')
     products = cursor.fetchall()
 
     cursor.execute('''
@@ -289,8 +256,8 @@ def admin_dashboard():
             else:
                 flash('No file uploaded!', 'error')
 
-        # Rest of the function remains the same
-        
+        # Rest of the existing product and promo management logic remains the same
+
     conn.close()
     return render_template('admin_dashboard.html', user=user, products=products, promos=promos)
 

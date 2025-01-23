@@ -7,6 +7,7 @@ import os
 import time
 import urllib.parse
 from werkzeug.utils import secure_filename
+from io import BytesIO
 from PIL import Image
 
 app = Flask(__name__)
@@ -193,96 +194,69 @@ def products():
                          total_products=total_products,
                          page_range_start=page_range_start,
                          page_range_end=page_range_end)
-
 @app.route('/admin', methods=['GET', 'POST'])
 @admin_required
 def admin_dashboard():
-    conn = get_db_connection()
-    if not conn:
-        flash('Database connection error', 'error')
-        return redirect(url_for('login'))
-        
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute('SELECT username FROM users WHERE id = %s', (session['user_id'],))
-    user = cursor.fetchone()
-
-    cursor.execute('''
-        SELECT 
-            id, 
-            name, 
-            CAST(REPLACE(REPLACE(price, 'Rp', ''), '.', '') AS FLOAT) as price, 
-            description, 
-            category, 
-            image 
-        FROM products
-    ''')
-    products = cursor.fetchall()
-
-    cursor.execute('''
-        SELECT promos.id, promos.name AS promo_name, promos.discount, 
-               products.name AS product_name, products.image AS product_image
-        FROM promos
-        LEFT JOIN products ON promos.product_id = products.id
-    ''')
-    promos = cursor.fetchall()
-
-    if request.method == 'POST':
-        action = request.form['action']
-
-        if action == 'add_product':
-            name = request.form['product_name']
-            price = request.form['product_price'].replace('Rp', '').replace(',', '').replace('.', '')[:-3]
-            description = request.form['product_description']
-            category = request.form['product_category']
-            
-            if 'product_image' in request.files:
-                file = request.files['product_image']
-                if file and allowed_file(file.filename):
-                    # Use a unique filename
-                    filename = f"{int(time.time())}_{secure_filename(file.filename)}"
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('SELECT username FROM users WHERE id = %s', (session['user_id'],))
+        user = cursor.fetchone()
+        cursor.execute('''
+            SELECT 
+                id, 
+                name, 
+                CAST(REPLACE(REPLACE(price, 'Rp', ''), '.', '') AS FLOAT) as price, 
+                description, 
+                category, 
+                image 
+            FROM products
+        ''')
+        products = cursor.fetchall()
+        cursor.execute('''
+            SELECT promos.id, promos.name AS promo_name, promos.discount, 
+                   products.name AS product_name, products.image AS product_image
+            FROM promos
+            LEFT JOIN products ON promos.product_id = products.id
+        ''')
+        promos = cursor.fetchall()
+        if request.method == 'POST':
+            action = request.form['action']
+            if action == 'add_product':
+                name = request.form['product_name']
+                price = request.form['product_price'].replace('Rp', '').replace(',', '').replace('.', '')[:-3]
+                description = request.form['product_description']
+                category = request.form['product_category']
+                
+                # Handle image upload
+                image_file = request.files['product_image']
+                if image_file and allowed_file(image_file.filename):
+                    filename = f"{int(time.time())}_{secure_filename(image_file.filename)}"
+                    image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    image_file.save(image_path)
                     
-                    # Save to a storage service or generate a placeholder URL
-                    image_url = f"https://via.placeholder.com/400x300.png?text={urllib.parse.quote(name)}"
-                    
-                    cursor.execute('''
-                        INSERT INTO products (name, price, description, category, image) 
-                        VALUES (%s, %s, %s, %s, %s)
-                    ''', (name, price, description, category, image_url))
-                    conn.commit()
-                    flash('Product added successfully!', 'success')
+                    # Check image resolution
+                    if check_resolution(image_path, 400, 300):
+                        image_url = f"/uploads/{filename}"
+                        cursor.execute('''
+                            INSERT INTO products (name, price, description, category, image) 
+                            VALUES (%s, %s, %s, %s, %s)
+                        ''', (name, price, description, category, image_url))
+                        conn.commit()
+                        flash('Product added successfully!', 'success')
+                    else:
+                        os.remove(image_path)
+                        flash('Image dimensions must be at least 400x300 pixels.', 'error')
                 else:
-                    flash('Invalid file type!', 'error')
-            else:
-                flash('No file uploaded!', 'error')
-
-        elif action == 'delete_product':
-            product_id = request.form['product_id']
-            # Remove file deletion logic
-            cursor.execute('DELETE FROM products WHERE id = %s', (product_id,))
-            conn.commit()
-            flash('Product deleted successfully!', 'success')
-
-        elif action == 'add_promo':
-            name = request.form['promo_name']
-            discount = request.form['promo_discount']
-            product_id = request.form['promo_product_id']  # Get selected product ID
-            cursor.execute(
-                'INSERT INTO promos (name, discount, product_id) VALUES (%s, %s, %s)', 
-                (name, discount, product_id)
-            )
-            conn.commit()
-            flash('Promo added successfully!', 'success')
-
-        elif action == 'delete_promo':
-            promo_id = request.form['promo_id']
-            cursor.execute('DELETE FROM promos WHERE id = %s', (promo_id,))
-            conn.commit()
-            flash('Promo deleted successfully!', 'success')
-
-
-    conn.close()
-    return render_template('admin_dashboard.html', user=user, products=products, promos=promos)
+                    flash('No file uploaded or invalid file type.', 'error')
+        return render_template('admin_dashboard.html', user=user, products=products, promos=promos)
+    except Exception as e:
+        flash('An error occurred while processing your request.', 'error')
+        app.logger.error(f'Error in admin_dashboard: {e}')
+        return redirect(url_for('login'))
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
 
 @app.route('/admin/users', methods=['GET', 'POST'])
 @admin_required

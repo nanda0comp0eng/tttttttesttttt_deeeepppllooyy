@@ -225,34 +225,21 @@ def loginadm():
 @admin_required
 def admin_dashboard():
     conn = get_db_connection()
+    if not conn:
+        flash('Database connection error', 'error')
+        return redirect(url_for('login'))
+        
     cursor = conn.cursor(dictionary=True)
 
-    # Fetch user data
     cursor.execute('SELECT username FROM users WHERE id = %s', (session['user_id'],))
     user = cursor.fetchone()
 
-    # Fetch existing products with price cast to FLOAT
-    cursor.execute('''
-        SELECT 
-            id, 
-            name, 
-            CAST(price AS FLOAT) as price, 
-            description, 
-            category, 
-            image 
-        FROM products
-    ''')
+    cursor.execute('SELECT id, name, CAST(price AS DECIMAL(10,2)) as price, description, category, image FROM products')
     products = cursor.fetchall()
 
-    # Fetch promos joined with product names and images
     cursor.execute('''
-        SELECT 
-            promos.id, 
-            promos.name AS promo_name, 
-            promos.discount, 
-            products.name AS product_name, 
-            CAST(products.price AS FLOAT) AS product_price,
-            products.image AS product_image
+        SELECT promos.id, promos.name AS promo_name, promos.discount, 
+               products.name AS product_name, products.image AS product_image
         FROM promos
         LEFT JOIN products ON promos.product_id = products.id
     ''')
@@ -263,58 +250,59 @@ def admin_dashboard():
 
         if action == 'add_product':
             name = request.form['product_name']
-            # Ensure price is numeric and remove formatting
-            price = float(request.form['product_price'].replace('Rp', '').replace(',', '').replace('.', '').strip())
+            price = request.form['product_price'].replace('Rp', '').replace(',', '').replace('.', '')[:-3]
             description = request.form['product_description']
             category = request.form['product_category']
             
-            # Handle image upload
             if 'product_image' in request.files:
                 file = request.files['product_image']
                 if file and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                     
-                    # Use a temporary directory for upload
-                    temp_dir = tempfile.mkdtemp()
-                    temp_path = os.path.join(temp_dir, filename)
-                    file.save(temp_path)
-                    
-                    try:
-                        # Ensure upload folder exists
-                        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-                        
-                        # Construct final path
-                        final_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                        
-                        # Copy file to final destination
-                        shutil.copy(temp_path, final_path)
-                        
-                        cursor.execute('''
-                            INSERT INTO products (name, price, description, category, image) 
-                            VALUES (%s, %s, %s, %s, %s)
-                        ''', (name, price, description, category, filename))
-                        conn.commit()
-                        flash('Product added successfully!', 'success')
-                    
-                    except Exception as e:
-                        flash(f'Error uploading file: {str(e)}', 'error')
-                    
-                    finally:
-                        # Clean up temporary directory
-                        shutil.rmtree(temp_dir, ignore_errors=True)
+                    cursor.execute('''
+                        INSERT INTO products (name, price, description, category, image) 
+                        VALUES (%s, %s, %s, %s, %s)
+                    ''', (name, price, description, category, filename))
+                    conn.commit()
+                    flash('Product added successfully!', 'success')
                 else:
                     flash('Invalid file type!', 'error')
             else:
                 flash('No file uploaded!', 'error')
 
-        # Rest of the existing code remains the same...
+        elif action == 'delete_product':
+            product_id = request.form['product_id']
+            cursor.execute('SELECT image FROM products WHERE id = %s', (product_id,))
+            product = cursor.fetchone()
+            if product and product['image']:
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], product['image'])
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+            
+            cursor.execute('DELETE FROM products WHERE id = %s', (product_id,))
+            conn.commit()
+            flash('Product deleted successfully!', 'success')
+
+        elif action == 'add_promo':
+            name = request.form['promo_name']
+            discount = request.form['promo_discount']
+            product_id = request.form['promo_product_id']
+            cursor.execute(
+                'INSERT INTO promos (name, discount, product_id) VALUES (%s, %s, %s)', 
+                (name, discount, product_id)
+            )
+            conn.commit()
+            flash('Promo added successfully!', 'success')
+
+        elif action == 'delete_promo':
+            promo_id = request.form['promo_id']
+            cursor.execute('DELETE FROM promos WHERE id = %s', (promo_id,))
+            conn.commit()
+            flash('Promo deleted successfully!', 'success')
 
     conn.close()
-    return render_template('admin_dashboard.html', 
-                            user=user, 
-                            products=products, 
-                            promos=promos)
-
+    return render_template('admin_dashboard.html', user=user, products=products, promos=promos)
 
 @app.route('/admin/users', methods=['GET', 'POST'])
 @admin_required

@@ -258,16 +258,7 @@ def admin_dashboard():
 
         elif action == 'delete_product':
             product_id = request.form['product_id']
-            
-            # Get the image filename before deleting the product
-            cursor.execute('SELECT image FROM products WHERE id = %s', (product_id,))
-            product = cursor.fetchone()
-            if product and product['image']:
-                # Delete the image file
-                image_path = os.path.join(app.config['UPLOAD_FOLDER'], product['image'])
-                if os.path.exists(image_path):
-                    os.remove(image_path)
-            
+            # Remove file deletion logic
             cursor.execute('DELETE FROM products WHERE id = %s', (product_id,))
             conn.commit()
             flash('Product deleted successfully!', 'success')
@@ -288,9 +279,10 @@ def admin_dashboard():
             cursor.execute('DELETE FROM promos WHERE id = %s', (promo_id,))
             conn.commit()
             flash('Promo deleted successfully!', 'success')
+
+
     conn.close()
     return render_template('admin_dashboard.html', user=user, products=products, promos=promos)
-
 
 @app.route('/admin/users', methods=['GET', 'POST'])
 @admin_required

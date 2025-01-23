@@ -390,7 +390,30 @@ def register():
             
     # If GET request, just show the registration form
     return render_template('register.html')
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = hashlib.md5(request.form['password'].encode()).hexdigest()
 
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', 
+                       (username, password))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['permission'] = user['permission']  # Save permission level in session
+            flash('Login berhasil!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Username atau password salah!', 'danger')
+
+    return render_template('login.html')
+    
 @app.route('/logout')
 def logout():
     session.clear()

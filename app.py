@@ -34,11 +34,11 @@ def check_resolution(image_path, min_width, min_height):
     
 # MySQL Connection Configuration
 db_config = {
-    'host': os.getenv('db_host'),
-    'user': os.getenv('username_db'),
-    'password': os.getenv('password_db'),  # Replace with your password if necessary
-    'database': os.getenv('db_name') # Tambah Koma Di sebelah ('db_name') Jika Database Anda Tidak Menggunakan Custom Port
-    # 'port': os.getenv('db_port') # Hapus Comment Ini Jika Database Anda Tidak Menggunakan Custom Port
+    'host': '6-1sh.h.filess.io',
+    'database': 'tokoku_digluckygo',
+    'user': 'tokoku_digluckygo',
+    'password': '5f59f8e9ac5170f2b1d9ec42397133766b7eb894',
+    'port': '3307'
 }
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

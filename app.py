@@ -6,10 +6,12 @@ import hashlib
 import os
 from werkzeug.utils import secure_filename  # Add this import
 from PIL import Image
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # Ganti dengan secret key yang aman
 # Activate Environment
+load_dotenv()
 
 PROFILE_UPLOAD_FOLDER = 'static/uploads/user'
 UPLOAD_FOLDER = 'static/uploads'
@@ -29,8 +31,8 @@ def check_resolution(image_path, min_width, min_height):
         width, height = img.size
         return width >= min_width and height >= min_height
 
-    
-# MySQL Connection Configuration
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 db_config = {
     'host': '6-1sh.h.filess.io',
     'database': 'tokoku_digluckygo',
@@ -39,12 +41,14 @@ db_config = {
     'port': '3307'
 }
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 def get_db_connection():
-    """Connect to the database and return the connection."""
-    return mysql.connector.connect(**db_config)
+    try:
+        connection = mysql.connector.connect(**db_config)
+        if connection.is_connected():
+            return connection
+    except Error as e:
+        print(f"Error connecting to MySQL: {e}")
+        return None
 
 def admin_required(f):
     """Decorator to restrict access to admin users only."""

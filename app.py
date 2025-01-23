@@ -263,7 +263,7 @@ def admin_dashboard():
             conn.commit()
             flash('Product deleted successfully!', 'success')
 
-            elif action == 'add_promo':
+        elif action == 'add_promo':
             name = request.form['promo_name']
             discount = request.form['promo_discount']
             product_id = request.form['promo_product_id']  # Get selected product ID

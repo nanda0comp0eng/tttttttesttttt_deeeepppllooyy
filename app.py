@@ -256,8 +256,38 @@ def admin_dashboard():
             else:
                 flash('No file uploaded!', 'error')
 
-        # Rest of the existing product and promo management logic remains the same
+        elif action == 'delete_product':
+            product_id = request.form['product_id']
+            
+            # Get the image filename before deleting the product
+            cursor.execute('SELECT image FROM products WHERE id = %s', (product_id,))
+            product = cursor.fetchone()
+            if product and product['image']:
+                # Delete the image file
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], product['image'])
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+            
+            cursor.execute('DELETE FROM products WHERE id = %s', (product_id,))
+            conn.commit()
+            flash('Product deleted successfully!', 'success')
 
+        elif action == 'add_promo':
+            name = request.form['promo_name']
+            discount = request.form['promo_discount']
+            product_id = request.form['promo_product_id']  # Get selected product ID
+            cursor.execute(
+                'INSERT INTO promos (name, discount, product_id) VALUES (%s, %s, %s)', 
+                (name, discount, product_id)
+            )
+            conn.commit()
+            flash('Promo added successfully!', 'success')
+
+        elif action == 'delete_promo':
+            promo_id = request.form['promo_id']
+            cursor.execute('DELETE FROM promos WHERE id = %s', (promo_id,))
+            conn.commit()
+            flash('Promo deleted successfully!', 'success')
     conn.close()
     return render_template('admin_dashboard.html', user=user, products=products, promos=promos)
 

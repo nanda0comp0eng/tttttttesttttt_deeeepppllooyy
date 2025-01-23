@@ -390,6 +390,7 @@ def register():
             
     # If GET request, just show the registration form
     return render_template('register.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -413,7 +414,7 @@ def login():
             flash('Username atau password salah!', 'danger')
 
     return render_template('login.html')
-    
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -436,57 +437,12 @@ def profil():
         flash('User not found!', 'error')
         return redirect(url_for('index'))
 
-    # Direktori penyimpanan untuk file
-    profile_dir = os.path.join(app.root_path, 'static/uploads/user')
-    if not os.path.exists(profile_dir):
-        os.makedirs(profile_dir)
+    default_picture = 'static/default_picture.png'
+    profile_picture_path = os.path.join(upload_folder, f"{user['username']}.png")
 
-    profile_picture_path = os.path.join(profile_dir, f"{user['username']}.png")
-    default_picture_path = os.path.join(app.root_path, 'static', 'default_picture.png')
-
-    # Jika tidak ada file profil, gunakan default gambar
-    if not os.path.exists(profile_picture_path):
-        profile_picture_path = default_picture_path
-
-    if request.method == 'POST':
-        # Periksa apakah file diunggah
-        if 'profile_picture' not in request.files or request.files['profile_picture'].filename == '':
-            flash('No file uploaded.', 'error')
-            return redirect(url_for('profil'))
-
-        file = request.files['profile_picture']
-
-        # Validasi file (hanya PNG diperbolehkan)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            temp_file_path = os.path.join(profile_dir, filename)
-            file.save(temp_file_path)
-
-            # Periksa resolusi gambar
-            if not check_resolution(temp_file_path, 300, 300):
-                os.remove(temp_file_path)
-                flash('Image resolution must be at least 300x300 pixels!', 'error')
-                return redirect(url_for('profil'))
-
-            # Hapus file profil lama jika ada
-            if os.path.exists(profile_picture_path) and profile_picture_path != default_picture_path:
-                os.remove(profile_picture_path)
-
-            # Pindahkan file ke path sesuai username
-            new_profile_picture_path = os.path.join(profile_dir, f"{user['username']}.png")
-            os.rename(temp_file_path, new_profile_picture_path)
-            flash('Profile picture updated successfully!', 'success')
-        else:
-            flash('Invalid file type! Only PNG files are allowed.', 'error')
-
-    # URL untuk gambar profil (frontend)
-    profile_picture_url = (
-        url_for('static', filename=f"uploads/user/{user['username']}.png")
-        if os.path.exists(os.path.join(profile_dir, f"{user['username']}.png"))
-        else url_for('static', filename='default_picture.png')
-    )
-
-    return render_template('profile.html', user=user, profile_picture=profile_picture_url)
+    return render_template('profile.html', 
+                           user=user, 
+                           profile_picture=profile_picture)
 
 # Pesan
 @app.route('/order', methods=['GET', 'POST'])

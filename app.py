@@ -437,12 +437,13 @@ def profil():
         flash('User not found!', 'error')
         return redirect(url_for('index'))
 
+    # Use the predefined PROFILE_UPLOAD_FOLDER from your configuration
     default_picture = 'static/default_picture.png'
-    profile_picture_path = os.path.join(upload_folder, f"{user['username']}.png")
+    profile_picture_path = os.path.join(app.config['PROFILE_UPLOAD_FOLDER'], f"{user['username']}.png")
 
     return render_template('profile.html', 
                            user=user, 
-                           profile_picture=profile_picture)
+                           profile_picture=default_picture)
 
 # Pesan
 @app.route('/order', methods=['GET', 'POST'])

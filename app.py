@@ -119,9 +119,22 @@ def products():
     
     per_page = 12  # Products per page
     
-    # Build the base query
-    query = 'SELECT * FROM products WHERE 1=1'
+    # Ensure price is cast to float in the base query
+    query = '''
+        SELECT 
+            id, 
+            name, 
+            CAST(REPLACE(REPLACE(price, 'Rp', ''), '.', '') AS FLOAT) as price, 
+            description, 
+            category, 
+            image, 
+            created_at 
+        FROM products 
+        WHERE 1=1
+    '''
     params = []
+    
+    # Rest of the query remains the same...
     
     # Add search condition
     if search:

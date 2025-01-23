@@ -78,8 +78,11 @@ def index():
     total_products = cursor.fetchone()['total']
     
     # Get latest 10 products
+    # Convert price to float to ensure proper formatting
     cursor.execute('''
-        SELECT * FROM products 
+        SELECT 
+            id, name, CAST(price AS FLOAT) as price, description, category, image, created_at 
+        FROM products 
         ORDER BY created_at DESC 
         LIMIT 10
     ''')

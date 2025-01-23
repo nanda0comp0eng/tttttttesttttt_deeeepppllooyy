@@ -4,14 +4,13 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from functools import wraps
 import hashlib
 import os
-from werkzeug.utils import secure_filename  # Add this import
+import tempfile 
+import shutil
+from werkzeug.utils import secure_filename
 from PIL import Image
-from dotenv import load_dotenv
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # Ganti dengan secret key yang aman
-# Activate Environment
-load_dotenv()
+app.secret_key = 'your_secret_key_here'
 
 PROFILE_UPLOAD_FOLDER = 'static/uploads/user'
 UPLOAD_FOLDER = 'static/uploads'

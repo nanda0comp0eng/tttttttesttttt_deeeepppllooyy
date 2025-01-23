@@ -76,19 +76,16 @@ def index():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get total number of products
     cursor.execute('SELECT COUNT(*) as total FROM products')
     total_products = cursor.fetchone()['total']
     
-    # Get latest 10 products
-    cursor.execute('''
-        SELECT * FROM products 
-        ORDER BY created_at DESC 
-        LIMIT 10
-    ''')
+    cursor.execute('SELECT * FROM products ORDER BY created_at DESC LIMIT 10')
     products = cursor.fetchall()
     
-    # Get promo data
+    # Convert price to float
+    for product in products:
+        product['price'] = float(product['price'])
+    
     cursor.execute('''
         SELECT 
             promos.name AS promo_name, 

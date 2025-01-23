@@ -244,7 +244,7 @@
                 </li>
                 {% endif %}
 
-                {% for p in range(max(1, page-2), min(total_pages+1, page+3)) %}
+                {% for p in page_range %}
                 <li class="page-item {% if p == page %}active{% endif %}">
                     <a class="page-link" href="{{ url_for('products', page=p, **request.args) }}">{{ p }}</a>
                 </li>

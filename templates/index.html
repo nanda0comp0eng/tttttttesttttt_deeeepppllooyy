@@ -254,7 +254,6 @@
             <div class="container-fluid py-5 text-center">
                 <h1 class="display-4 fw-bold">Selamat Datang di Tokoku!</h1>
                 <p class="fs-4">Marketplace untuk semua kebutuhan gaming Anda.</p>
-                <a class="btn btn-primary btn-lg" href="/" role="button">Mulai Belanja</a>
                 <a class="btn btn-primary btn-lg" href="/order" role="button">Mulai Belanja</a>
             </div>
         </div>
@@ -276,7 +275,7 @@
                         <h5 class="card-title">{{ product.name }}</h5>
                         <p class="card-text">{{ product.description }}</p>
                         <p class="card-text"><strong>Rp{{ '{:,.2f}'.format(product.price).replace(',', '.').replace('.', ',', 1) }}</strong></p>
-                        <a href="#" class="btn btn-primary">Beli Sekarang</a>
+                        <a href="/order" class="btn btn-primary">Beli Sekarang</a>
                     </div>
                 </div>
             </div>

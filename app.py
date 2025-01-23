@@ -6,12 +6,10 @@ import hashlib
 import os
 from werkzeug.utils import secure_filename  # Add this import
 from PIL import Image
-from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # Ganti dengan secret key yang aman
 # Activate Environment
-load_dotenv()
 
 PROFILE_UPLOAD_FOLDER = 'static/uploads/user'
 UPLOAD_FOLDER = 'static/uploads'

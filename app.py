@@ -12,6 +12,7 @@ from PIL import Image
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
+os.makedirs('static/uploads', exist_ok=True)
 PROFILE_UPLOAD_FOLDER = 'static/uploads/user'
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}

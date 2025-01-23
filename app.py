@@ -231,14 +231,28 @@ def admin_dashboard():
     cursor.execute('SELECT username FROM users WHERE id = %s', (session['user_id'],))
     user = cursor.fetchone()
 
-    # Fetch existing products
-    cursor.execute('SELECT * FROM products')
+    # Fetch existing products with price cast to FLOAT
+    cursor.execute('''
+        SELECT 
+            id, 
+            name, 
+            CAST(price AS FLOAT) as price, 
+            description, 
+            category, 
+            image 
+        FROM products
+    ''')
     products = cursor.fetchall()
 
     # Fetch promos joined with product names and images
     cursor.execute('''
-        SELECT promos.id, promos.name AS promo_name, promos.discount, 
-               products.name AS product_name, products.image AS product_image
+        SELECT 
+            promos.id, 
+            promos.name AS promo_name, 
+            promos.discount, 
+            products.name AS product_name, 
+            CAST(products.price AS FLOAT) AS product_price,
+            products.image AS product_image
         FROM promos
         LEFT JOIN products ON promos.product_id = products.id
     ''')
@@ -249,7 +263,8 @@ def admin_dashboard():
 
         if action == 'add_product':
             name = request.form['product_name']
-            price = request.form['product_price'].replace('Rp', '').replace(',', '').replace('.', '')[:-3]
+            # Ensure price is numeric and remove formatting
+            price = float(request.form['product_price'].replace('Rp', '').replace(',', '').replace('.', '').strip())
             description = request.form['product_description']
             category = request.form['product_category']
             
@@ -305,7 +320,10 @@ def admin_dashboard():
             flash('Promo deleted successfully!', 'success')
 
     conn.close()
-    return render_template('admin_dashboard.html', user=user, products=products, promos=promos)
+    return render_template('admin_dashboard.html', 
+                            user=user, 
+                            products=products, 
+                            promos=promos)
 
 
 @app.route('/admin/users', methods=['GET', 'POST'])
